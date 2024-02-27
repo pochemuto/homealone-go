@@ -19,15 +19,18 @@ jobs:
       with:
         go-version: '1.22'
 
+    - name: Install dependencies
+      run: |
+        go get .
     - name: Build
       id: build
-      run: go build -v ./...
+      run: go build -v -o dist/homealone
 
     - name: Test
       run: go test -v ./...
 
     - name: List
-      run: ls -la
+      run: ls -la dist/
 
     - name: Deploy
       uses: appleboy/scp-action@v0.1.7
@@ -36,5 +39,7 @@ jobs:
         username: ${{ secrets.USERNAME }}
         port: ${{ secrets.PORT }}
         key: ${{ secrets.KEY }}
-        source: "homealone"
-        target: "/home/pochemuto/homealone"
+        passphrase: ${{ secrets.PASSPHRASE }}
+        source: "dist/*"
+        strip_components: 1
+        target: "/home/pochemuto/homealone/"

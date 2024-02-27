@@ -22,8 +22,12 @@ jobs:
     - name: Install dependencies
       run: |
         go get .
+
     - name: Build
       id: build
+      env:
+        GOOS: linux
+        GOARCH: arm64
       run: go build -v -o dist/homealone
 
     - name: Test

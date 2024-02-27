@@ -27,7 +27,7 @@ jobs:
       id: build
       env:
         GOOS: linux
-        GOARCH: arm64
+        GOARCH: arm
       run: go build -v -o dist/homealone
 
     - name: Test

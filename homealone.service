@@ -1,8 +1,10 @@
 # Copy this file to $HOME/.config/systemd/user
 # And start service: 
+#  systemctl --user enable homealone
+# Start:
 #  systemctl --user start homealon
 # Logs:
-#  journalctl --user -u homealone
+#  journalctl --user -u homealone -f
 
 [Unit]
 Description=HomeAlone Bot

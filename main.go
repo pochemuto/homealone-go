@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	log.Println("Main")
+	log.Println("Started")
 	homealone.Start()
 }

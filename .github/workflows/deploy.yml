@@ -36,5 +36,5 @@ jobs:
         username: ${{ secrets.USERNAME }}
         port: ${{ secrets.PORT }}
         key: ${{ secrets.KEY }}
-        source: "homealone-go"
-        target: "/home/pochemuto/homealone-go"
+        source: "homealone"
+        target: "/home/pochemuto/homealone"

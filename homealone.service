@@ -1,0 +1,19 @@
+# Copy this file to $HOME/.config/systemd/user
+# And start service: 
+#  systemctl --user start homealon
+# Logs:
+#  journalctl --user -u homealone
+
+[Unit]
+Description=HomeAlone Bot
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/home/pochemuto/homealone/homealone
+
+[Install]
+WantedBy=multi-user.target

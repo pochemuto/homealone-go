@@ -79,13 +79,17 @@ func Start() {
 					bot.Send(NotAuthorizedUser(update))
 					continue
 				}
-				err = Shutdown()
+				triggered, err := Shutdown()
 				if err != nil {
 					bot.Send(ErrorMessage(update, err))
 					continue
 				}
 
-				bot.Send(Message(update, "Выключаем"))
+				if triggered {
+					bot.Send(Message(update, "Выключаем"))
+				} else {
+					bot.Send(Message(update, "Plex спит"))
+				}
 			default:
 				bot.Send(Echo(update))
 			}

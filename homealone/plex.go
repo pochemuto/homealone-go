@@ -2,31 +2,36 @@ package homealone
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"syscall"
 
 	"github.com/mdlayher/wol"
 )
 
-func Shutdown() error {
+func Shutdown() (bool, error) {
 	trigger := os.Getenv("PLEX_SHUTDOWN_TRIGGER")
 	body := []byte(os.Getenv("ZINA_SECRET"))
 	resp, err := http.Post(trigger, "Content-Type: text/plain", bytes.NewReader(body))
+	if errors.Is(err, syscall.ECONNREFUSED) {
+		return false, nil
+	}
 	if err != nil {
-		return err
+		return false, err
 	}
 	if resp.StatusCode != 200 {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return err
+			return false, err
 		}
-		return fmt.Errorf("failed response (%d): %s", resp.StatusCode, body)
+		return false, fmt.Errorf("failed response (%d): %s", resp.StatusCode, body)
 	}
-	return nil
+	return true, nil
 }
 
 func Wakeup() error {

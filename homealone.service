@@ -2,7 +2,7 @@
 # And start service: 
 #  systemctl --user enable homealone
 # Start:
-#  systemctl --user start homealon
+#  systemctl --user start homealone
 # Logs:
 #  journalctl --user -u homealone -f
 
@@ -18,4 +18,4 @@ RestartSec=1
 ExecStart=/home/pochemuto/homealone/homealone
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

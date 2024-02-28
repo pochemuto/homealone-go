@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -18,14 +18,16 @@ func Shutdown() (bool, error) {
 	trigger := os.Getenv("PLEX_SHUTDOWN_TRIGGER")
 	body := []byte(os.Getenv("ZINA_SECRET"))
 	resp, err := http.Post(trigger, "Content-Type: text/plain", bytes.NewReader(body))
-	if errors.Is(err, syscall.ECONNREFUSED) {
+	if errors.Is(err, syscall.ECONNREFUSED) ||
+		errors.Is(err, syscall.EHOSTDOWN) ||
+		errors.Is(err, syscall.EHOSTUNREACH) {
 		return false, nil
 	}
 	if err != nil {
 		return false, err
 	}
 	if resp.StatusCode != 200 {
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return false, err
 		}

@@ -7,6 +7,24 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+func ErrorMessage(incomming tgbotapi.Update, err error) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(incomming.Message.Chat.ID, "Произошла ошибка: "+err.Error())
+	msg.ReplyToMessageID = incomming.Message.MessageID
+	return msg
+}
+
+func Echo(incomming tgbotapi.Update) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(incomming.Message.Chat.ID, incomming.Message.Text)
+	msg.ReplyToMessageID = incomming.Message.MessageID
+	return msg
+}
+
+func Message(incomming tgbotapi.Update, text string) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(incomming.Message.Chat.ID, text)
+	msg.ReplyToMessageID = incomming.Message.MessageID
+	return msg
+}
+
 func Start() {
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
@@ -30,10 +48,17 @@ func Start() {
 		if update.Message != nil { // If we got a message
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-			msg.ReplyToMessageID = update.Message.MessageID
-
-			bot.Send(msg)
+			switch update.Message.Command() {
+			case "wakeup":
+				err = Wakeup()
+				if err == nil {
+					bot.Send(Message(update, "Пробуждаем"))
+				} else {
+					bot.Send(ErrorMessage(update, err))
+				}
+			default:
+				bot.Send(Echo(update))
+			}
 		}
 	}
 }

@@ -15,6 +15,7 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=always
 RestartSec=1
+EnvironmentFile=/home/pochemuto/homealone/environment
 ExecStart=/home/pochemuto/homealone/homealone
 
 [Install]

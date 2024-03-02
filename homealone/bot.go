@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/pochemuto/homealone-go/plex"
 )
 
 func ErrorMessage(incomming tgbotapi.Update, err error) tgbotapi.MessageConfig {
@@ -31,7 +32,7 @@ func NotAuthorizedUser(incoming tgbotapi.Update) tgbotapi.MessageConfig {
 }
 
 func IsAuthorized(user tgbotapi.User) bool {
-	id, err := strconv.ParseInt(os.Getenv("AUTHORIZED_USER_ID"), 10, 64)
+	id, err := strconv.ParseInt(os.Getenv("TELEGRAM_AUTHORIZED_USER_ID"), 10, 64)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -67,19 +68,25 @@ func Start() {
 					bot.Send(NotAuthorizedUser(update))
 					continue
 				}
-				err = Wakeup()
+				err = plex.Wakeup()
 				if err != nil {
 					bot.Send(ErrorMessage(update, err))
 					continue
 				}
 
 				bot.Send(Message(update, "Пробуждаем"))
+			case "check":
+				if plex.IsAlive() {
+					bot.Send(Message(update, "Работает"))
+				} else {
+					bot.Send(Message(update, "Не работает"))
+				}
 			case "shutdown":
 				if !IsAuthorized(*update.SentFrom()) {
 					bot.Send(NotAuthorizedUser(update))
 					continue
 				}
-				triggered, err := Shutdown()
+				triggered, err := plex.Shutdown()
 				if err != nil {
 					bot.Send(ErrorMessage(update, err))
 					continue

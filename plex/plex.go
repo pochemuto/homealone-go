@@ -35,11 +35,15 @@ func Shutdown() error {
 
 func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
 	response := make(chan bool, 1)
-	// err := Shutdown()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	ticker := time.NewTicker(1 * time.Second)
+	err := Shutdown()
+	if err != nil {
+		if isConnectionError(err) {
+			response <- true
+			return response, nil
+		}
+		return nil, err
+	}
+	ticker := time.NewTicker(5 * time.Second)
 	go func() {
 		defer ticker.Stop()
 		defer close(response)

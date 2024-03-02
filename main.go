@@ -15,5 +15,9 @@ func main() {
 	}
 
 	log.Println("Started")
-	homealone.Start()
+	var bot homealone.Bot
+	err = bot.Start()
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 }

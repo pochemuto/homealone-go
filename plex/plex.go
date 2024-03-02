@@ -28,27 +28,31 @@ func Shutdown() error {
 		if err != nil {
 			return err
 		}
-		return false, fmt.Errorf("failed response (%d): %s", resp.StatusCode, body)
+		return fmt.Errorf("failed response (%d): %s", resp.StatusCode, body)
 	}
-	return true, nil
+	return nil
 }
 
 func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
 	response := make(chan bool, 1)
-	shutdown_result, err := Shutdown()
-	if err != nil {
-		return nil, err
-	}
-	if !shutdown_result 
+	// err := Shutdown()
+	// if err != nil {
+	// 	return nil, err
+	// }
 	ticker := time.NewTicker(1 * time.Second)
 	go func() {
-		select {
-		case <-ticker.C:
-			if IsAlive() {
-				response <- true
+		defer ticker.Stop()
+		defer close(response)
+		for {
+			select {
+			case <-ticker.C:
+				if !IsAlive() {
+					response <- true
+					return
+				}
+			case <-ctx.Done():
+				response <- false
 			}
-		case <-ctx.Done():
-			response <- false
 		}
 	}()
 	return response, nil
@@ -87,7 +91,10 @@ func isConnectionError(err error) bool {
 func IsAlive() bool {
 	url := os.Getenv("PLEX_URL")
 	log.Printf("Requesting %s", url)
-	resp, err := http.Head(url)
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
+	resp, err := client.Head(url)
 	if err != nil {
 		log.Printf("Error: %v", err.Error())
 		return false

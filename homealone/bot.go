@@ -1,9 +1,12 @@
 package homealone
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pochemuto/homealone-go/plex"
@@ -81,22 +84,54 @@ func Start() {
 				} else {
 					bot.Send(Message(update, "Не работает"))
 				}
+			case "shutandwait":
+				ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+				done, err := plex.ShutdownAndWait(ctx)
+				if err != nil {
+					bot.Send(ErrorMessage(update, err))
+					cancel()
+					continue
+				}
+				ticker := time.NewTicker(1 * time.Second)
+				status_message, err := bot.Send(Message(update, "Выключаем..."))
+				if err != nil {
+					bot.Send(ErrorMessage(update, err))
+					cancel()
+					continue
+				}
+				go func(update tgbotapi.Update) {
+					n := 0
+					defer ticker.Stop()
+					defer cancel()
+					for {
+						select {
+						case <-ticker.C:
+							n++
+							bot.Send(tgbotapi.NewEditMessageText(status_message.Chat.ID, status_message.MessageID,
+								fmt.Sprintf("Выключаем (%d)", n)))
+						case turned_off := <-done:
+							if turned_off {
+								bot.Send(tgbotapi.NewEditMessageText(status_message.Chat.ID, status_message.MessageID,
+									"Выключен"))
+							} else {
+								bot.Send(tgbotapi.NewEditMessageText(status_message.Chat.ID, status_message.MessageID,
+									"Не удалось выключить"))
+							}
+							return
+						}
+					}
+				}(update)
 			case "shutdown":
 				if !IsAuthorized(*update.SentFrom()) {
 					bot.Send(NotAuthorizedUser(update))
 					continue
 				}
-				triggered, err := plex.Shutdown()
+				err := plex.Shutdown()
 				if err != nil {
 					bot.Send(ErrorMessage(update, err))
 					continue
 				}
-
-				if triggered {
-					bot.Send(Message(update, "Выключаем"))
-				} else {
-					bot.Send(Message(update, "Plex спит"))
-				}
+				bot.Send(Message(update, "Выключаем"))
 			default:
 				bot.Send(Echo(update))
 			}

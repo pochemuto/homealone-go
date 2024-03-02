@@ -4,6 +4,7 @@ go 1.22.0
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/mdlayher/ethernet v0.0.0-20220221185849-529eae5b6118 // indirect
 	github.com/mdlayher/packet v1.1.2 // indirect

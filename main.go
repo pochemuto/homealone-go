@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/pochemuto/homealone-go/homealone"
@@ -9,8 +10,8 @@ import (
 
 func main() {
 	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err != nil && os.IsNotExist(err) {
+		log.Fatal("Error loading .env file, %v", err)
 	}
 
 	log.Println("Started")

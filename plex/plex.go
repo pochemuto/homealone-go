@@ -10,28 +10,48 @@ import (
 	"net/http"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/mdlayher/wol"
+	"golang.org/x/net/context"
 )
 
-func Shutdown() (bool, error) {
+func Shutdown() error {
 	trigger := os.Getenv("PLEX_SHUTDOWN_TRIGGER")
 	body := []byte(os.Getenv("PLEX_SHUTDOWN_SECRET"))
 	resp, err := http.Post(trigger, "Content-Type: text/plain", bytes.NewReader(body))
-	if isConnectionError(err) {
-		return false, nil
-	}
 	if err != nil {
-		return false, err
+		return err
 	}
 	if resp.StatusCode != 200 {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return false, err
+			return err
 		}
 		return false, fmt.Errorf("failed response (%d): %s", resp.StatusCode, body)
 	}
 	return true, nil
+}
+
+func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
+	response := make(chan bool, 1)
+	shutdown_result, err := Shutdown()
+	if err != nil {
+		return nil, err
+	}
+	if !shutdown_result 
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		select {
+		case <-ticker.C:
+			if IsAlive() {
+				response <- true
+			}
+		case <-ctx.Done():
+			response <- false
+		}
+	}()
+	return response, nil
 }
 
 func Wakeup() error {

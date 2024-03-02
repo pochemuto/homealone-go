@@ -64,13 +64,13 @@ func Start() {
 	for update := range updates {
 		if update.Message != nil { // If we got a message
 			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+			if !IsAuthorized(*update.SentFrom()) {
+				bot.Send(NotAuthorizedUser(update))
+				continue
+			}
 
 			switch update.Message.Command() {
 			case "wakeup":
-				if !IsAuthorized(*update.SentFrom()) {
-					bot.Send(NotAuthorizedUser(update))
-					continue
-				}
 				err = plex.Wakeup()
 				if err != nil {
 					bot.Send(ErrorMessage(update, err))
@@ -122,10 +122,6 @@ func Start() {
 					}
 				}(update)
 			case "shutdown":
-				if !IsAuthorized(*update.SentFrom()) {
-					bot.Send(NotAuthorizedUser(update))
-					continue
-				}
 				err := plex.Shutdown()
 				if err != nil {
 					bot.Send(ErrorMessage(update, err))

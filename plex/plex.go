@@ -34,7 +34,7 @@ func Shutdown() error {
 }
 
 func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
-	response := make(chan bool, 1)
+	response := make(chan bool)
 	err := Shutdown()
 	if err != nil {
 		if isConnectionError(err) {
@@ -51,6 +51,35 @@ func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
 			select {
 			case <-ticker.C:
 				if !IsAlive() {
+					response <- true
+					return
+				}
+			case <-ctx.Done():
+				response <- false
+			}
+		}
+	}()
+	return response, nil
+}
+
+func WakeupAndWait(ctx context.Context) (<-chan bool, error) {
+	response := make(chan bool)
+	err := Wakeup()
+	if err != nil {
+		if isConnectionError(err) {
+			response <- true
+			return response, nil
+		}
+		return nil, err
+	}
+	ticker := time.NewTicker(5 * time.Second)
+	go func() {
+		defer ticker.Stop()
+		defer close(response)
+		for {
+			select {
+			case <-ticker.C:
+				if IsAlive() {
 					response <- true
 					return
 				}

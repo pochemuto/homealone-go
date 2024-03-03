@@ -16,6 +16,11 @@ type Bot struct {
 	api *tgbotapi.BotAPI
 }
 
+func (bot Bot) updateMessage(original tgbotapi.Message, text string) {
+	bot.api.Send(tgbotapi.NewEditMessageText(original.Chat.ID, original.MessageID,
+		text))
+}
+
 func (bot Bot) handleShutdownAndWait(update tgbotapi.Update) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
 	done, err := plex.ShutdownAndWait(ctx)
@@ -38,15 +43,12 @@ func (bot Bot) handleShutdownAndWait(update tgbotapi.Update) error {
 			select {
 			case now := <-ticker.C:
 				seconds := now.Unix() - started.Unix()
-				bot.api.Send(tgbotapi.NewEditMessageText(status_message.Chat.ID, status_message.MessageID,
-					fmt.Sprintf("Выключаем (%d)...", seconds)))
+				bot.updateMessage(status_message, fmt.Sprintf("Выключаем (%d)...", seconds))
 			case turned_off := <-done:
 				if turned_off {
-					bot.api.Send(tgbotapi.NewEditMessageText(status_message.Chat.ID, status_message.MessageID,
-						"Выключен"))
+					bot.updateMessage(status_message, "Выключен")
 				} else {
-					bot.api.Send(tgbotapi.NewEditMessageText(status_message.Chat.ID, status_message.MessageID,
-						"Не удалось выключить"))
+					bot.updateMessage(status_message, "Не удалось выключить")
 				}
 				return
 			}
@@ -55,28 +57,58 @@ func (bot Bot) handleShutdownAndWait(update tgbotapi.Update) error {
 	return nil
 }
 
+func (bot Bot) handleWakeupAndWait(update tgbotapi.Update) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+	done, err := plex.WakeupAndWait(ctx)
+	if err != nil {
+		cancel()
+		return err
+	}
+	ticker := time.NewTicker(time.Second)
+	status_message, err := bot.api.Send(Message(update, "Включение..."))
+	started := time.Now()
+	if err != nil {
+		bot.api.Send(ErrorMessage(update, err))
+		cancel()
+		return nil
+	}
+	go func(update tgbotapi.Update) {
+		defer ticker.Stop()
+		defer cancel()
+		for {
+			select {
+			case now := <-ticker.C:
+				seconds := now.Unix() - started.Unix()
+				bot.updateMessage(status_message, fmt.Sprintf("Включение (%d)...", seconds))
+			case turned_off := <-done:
+				if turned_off {
+					bot.updateMessage(status_message, "Включен")
+				} else {
+					bot.updateMessage(status_message, "Не удалось включить")
+				}
+				return
+			}
+		}
+	}(update)
+	return nil
+}
+
+func (bot Bot) replyText(update tgbotapi.Update, text string) {
+	bot.api.Send(Message(update, text))
+}
+
 func (bot Bot) handleUpdate(update tgbotapi.Update) (err error) {
 	switch update.Message.Command() {
 	case "wakeup":
-		err = plex.Wakeup()
-		if err != nil {
-			return
-		}
-		bot.api.Send(Message(update, "Пробуждаем"))
+		bot.handleWakeupAndWait(update)
 	case "check":
 		if plex.IsAlive() {
-			bot.api.Send(Message(update, "Работает"))
+			bot.replyText(update, "Работает")
 		} else {
-			bot.api.Send(Message(update, "Не работает"))
+			bot.replyText(update, "Не работает")
 		}
-	case "shutandwait":
-		bot.handleShutdownAndWait(update)
 	case "shutdown":
-		err = plex.Shutdown()
-		if err != nil {
-			return
-		}
-		bot.api.Send(Message(update, "Выключаем"))
+		bot.handleShutdownAndWait(update)
 	default:
 		bot.api.Send(Echo(update))
 	}

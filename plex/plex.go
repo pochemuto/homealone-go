@@ -12,11 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/mdlayher/wol"
 	"golang.org/x/net/context"
 )
 
-func Shutdown() error {
+func shutdown() error {
 	trigger := os.Getenv("PLEX_SHUTDOWN_TRIGGER")
 	body := []byte(os.Getenv("PLEX_SHUTDOWN_SECRET"))
 	resp, err := http.Post(trigger, "Content-Type: text/plain", bytes.NewReader(body))
@@ -34,8 +35,12 @@ func Shutdown() error {
 }
 
 func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
-	response := make(chan bool)
-	err := Shutdown()
+	response := make(chan bool, 1)
+	if !IsAlive() {
+		response <- true
+		return response, nil
+	}
+	err := shutdown()
 	if err != nil {
 		if isConnectionError(err) {
 			response <- true
@@ -63,8 +68,12 @@ func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
 }
 
 func WakeupAndWait(ctx context.Context) (<-chan bool, error) {
-	response := make(chan bool)
-	err := Wakeup()
+	response := make(chan bool, 1)
+	if IsAlive() {
+		response <- true
+		return response, nil
+	}
+	err := wakeup()
 	if err != nil {
 		if isConnectionError(err) {
 			response <- true
@@ -91,7 +100,7 @@ func WakeupAndWait(ctx context.Context) (<-chan bool, error) {
 	return response, nil
 }
 
-func Wakeup() error {
+func wakeup() error {
 	client, err := wol.NewClient()
 	if err != nil {
 		return err
@@ -103,12 +112,12 @@ func Wakeup() error {
 	if err != nil {
 		return err
 	}
-	log.Println("Sending wakup request to", ip, "addr", mac)
+	glog.Infof("Sending wakup request to", ip, "addr", mac)
 	err = client.Wake(ip, mac)
 	if err != nil {
 		return err
 	}
-	log.Println("Request sent to", ip)
+	glog.Infof("Request sent to", ip)
 	return nil
 }
 
@@ -123,7 +132,7 @@ func isConnectionError(err error) bool {
 
 func IsAlive() bool {
 	url := os.Getenv("PLEX_URL")
-	log.Printf("Requesting %s", url)
+	glog.Infof("Requesting %s", url)
 	client := http.Client{
 		Timeout: 2 * time.Second,
 	}
@@ -133,6 +142,6 @@ func IsAlive() bool {
 		return false
 	}
 	plex_protocol := resp.Header.Get("X-Plex-Protocol")
-	log.Printf("Plex protocol: %s", plex_protocol)
+	glog.Infof("Plex protocol: %s", plex_protocol)
 	return plex_protocol != ""
 }

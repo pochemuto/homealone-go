@@ -1,3 +1,4 @@
 homealone-go
 dist/
 .env
+__debug*

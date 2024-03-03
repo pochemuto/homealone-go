@@ -9,6 +9,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/golang/glog"
 	"github.com/pochemuto/homealone-go/plex"
 )
 
@@ -21,8 +22,8 @@ func (bot Bot) updateMessage(original tgbotapi.Message, text string) {
 		text))
 }
 
-func (bot Bot) handleShutdownAndWait(update tgbotapi.Update) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+func (bot Bot) handleShutdown(update tgbotapi.Update) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Minute)
 	done, err := plex.ShutdownAndWait(ctx)
 	if err != nil {
 		cancel()
@@ -32,7 +33,7 @@ func (bot Bot) handleShutdownAndWait(update tgbotapi.Update) error {
 	status_message, err := bot.api.Send(Message(update, "Выключаем..."))
 	started := time.Now()
 	if err != nil {
-		bot.api.Send(ErrorMessage(update, err))
+		bot.errorMessage(update, err)
 		cancel()
 		return nil
 	}
@@ -57,8 +58,8 @@ func (bot Bot) handleShutdownAndWait(update tgbotapi.Update) error {
 	return nil
 }
 
-func (bot Bot) handleWakeupAndWait(update tgbotapi.Update) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+func (bot Bot) handleWakeup(update tgbotapi.Update) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Minute)
 	done, err := plex.WakeupAndWait(ctx)
 	if err != nil {
 		cancel()
@@ -68,7 +69,7 @@ func (bot Bot) handleWakeupAndWait(update tgbotapi.Update) error {
 	status_message, err := bot.api.Send(Message(update, "Включение..."))
 	started := time.Now()
 	if err != nil {
-		bot.api.Send(ErrorMessage(update, err))
+		bot.errorMessage(update, err)
 		cancel()
 		return nil
 	}
@@ -100,7 +101,7 @@ func (bot Bot) replyText(update tgbotapi.Update, text string) {
 func (bot Bot) handleUpdate(update tgbotapi.Update) (err error) {
 	switch update.Message.Command() {
 	case "wakeup":
-		bot.handleWakeupAndWait(update)
+		bot.handleWakeup(update)
 	case "check":
 		if plex.IsAlive() {
 			bot.replyText(update, "Работает")
@@ -108,9 +109,9 @@ func (bot Bot) handleUpdate(update tgbotapi.Update) (err error) {
 			bot.replyText(update, "Не работает")
 		}
 	case "shutdown":
-		bot.handleShutdownAndWait(update)
+		bot.handleShutdown(update)
 	default:
-		bot.api.Send(Echo(update))
+		bot.echo(update)
 	}
 	return
 }
@@ -121,8 +122,7 @@ func (bot Bot) Start() (err error) {
 		return fmt.Errorf("can't start bot: %v", err)
 	}
 
-	bot.api.Debug = true
-	log.Printf("Authorized on account %s", bot.api.Self.UserName)
+	glog.Infof("Authorized on account %s", bot.api.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -135,14 +135,14 @@ func (bot Bot) Start() (err error) {
 
 	for update := range updates {
 		if update.Message != nil { // If we got a message
-			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+			glog.Infof("[%s] %s", update.Message.From.UserName, update.Message.Text)
 			if !IsAuthorized(*update.SentFrom()) {
-				bot.api.Send(NotAuthorizedUser(update))
+				bot.replyText(update, notAuthorizedUser(update))
 				continue
 			}
 
 			if err := bot.handleUpdate(update); err != nil {
-				bot.api.Send(ErrorMessage(update, err))
+				bot.errorMessage(update, err)
 			}
 		}
 	}
@@ -150,16 +150,12 @@ func (bot Bot) Start() (err error) {
 	return nil
 }
 
-func ErrorMessage(incomming tgbotapi.Update, err error) tgbotapi.MessageConfig {
-	msg := tgbotapi.NewMessage(incomming.Message.Chat.ID, "Произошла ошибка: "+err.Error())
-	msg.ReplyToMessageID = incomming.Message.MessageID
-	return msg
+func (bot Bot) errorMessage(incomming tgbotapi.Update, err error) {
+	bot.replyText(incomming, "Произошла ошибка: "+err.Error())
 }
 
-func Echo(incomming tgbotapi.Update) tgbotapi.MessageConfig {
-	msg := tgbotapi.NewMessage(incomming.Message.Chat.ID, incomming.Message.Text)
-	msg.ReplyToMessageID = incomming.Message.MessageID
-	return msg
+func (bot Bot) echo(incomming tgbotapi.Update) {
+	bot.replyText(incomming, incomming.Message.Text)
 }
 
 func Message(incomming tgbotapi.Update, text string) tgbotapi.MessageConfig {
@@ -168,8 +164,8 @@ func Message(incomming tgbotapi.Update, text string) tgbotapi.MessageConfig {
 	return msg
 }
 
-func NotAuthorizedUser(incoming tgbotapi.Update) tgbotapi.MessageConfig {
-	return Message(incoming, "Пользователь "+incoming.SentFrom().UserName+" не авторизован")
+func notAuthorizedUser(incoming tgbotapi.Update) string {
+	return "Пользователь " + incoming.SentFrom().UserName + " не авторизован"
 }
 
 func IsAuthorized(user tgbotapi.User) bool {

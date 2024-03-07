@@ -134,7 +134,7 @@ func (bot Bot) Start() (err error) {
 	updates := bot.api.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message != nil { // If we got a message
+		if update.Message != nil {
 			glog.Infof("[%s] %s", update.Message.From.UserName, update.Message.Text)
 			if !IsAuthorized(*update.SentFrom()) {
 				bot.replyText(update, notAuthorizedUser(update))

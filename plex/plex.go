@@ -112,7 +112,7 @@ func wakeup() error {
 	if err != nil {
 		return err
 	}
-	glog.Infof("Sending wakup request to", ip, "addr", mac)
+	glog.Infof("Sending wakeup request to", ip, "addr", mac)
 	err = client.Wake(ip, mac)
 	if err != nil {
 		return err

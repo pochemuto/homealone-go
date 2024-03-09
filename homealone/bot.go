@@ -14,6 +14,7 @@ import (
 )
 
 type Bot struct {
+	ctx context.Context
 	api *tgbotapi.BotAPI
 }
 
@@ -23,75 +24,85 @@ func (bot Bot) updateMessage(original tgbotapi.Message, text string) {
 }
 
 func (bot Bot) handleShutdown(update tgbotapi.Update) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Minute)
-	done, err := plex.ShutdownAndWait(ctx)
+	status_message, err := bot.api.Send(Message(update, "Выключение..."))
 	if err != nil {
-		cancel()
+		return err
+	}
+	ctx, _ := context.WithTimeout(bot.ctx, 10*time.Minute)
+	return bot.doLongProcess(ctx, longProcess{
+		longProcessFunc: plex.ShutdownAndWait,
+		tickFunc: func(seconds_elapsed int64) {
+			bot.updateMessage(status_message, fmt.Sprintf("Выключение (%d)...", seconds_elapsed))
+		},
+		doneFunc: func() {
+			bot.updateMessage(status_message, "Выключен")
+		},
+	})
+}
+
+type longProcess struct {
+	longProcessFunc func(context.Context) (<-chan struct{}, error)
+	tickFunc        func(seconds_elapsed int64)
+	doneFunc        func()
+}
+
+func (bot Bot) doLongProcess(ctx context.Context, cfg longProcess) error {
+	done, err := cfg.longProcessFunc(ctx)
+	if err != nil {
 		return err
 	}
 	ticker := time.NewTicker(time.Second)
-	status_message, err := bot.api.Send(Message(update, "Выключаем..."))
 	started := time.Now()
-	if err != nil {
-		bot.errorMessage(update, err)
-		cancel()
-		return nil
-	}
-	go func(update tgbotapi.Update) {
+	go func() {
 		defer ticker.Stop()
-		defer cancel()
 		for {
 			select {
 			case now := <-ticker.C:
 				seconds := now.Unix() - started.Unix()
-				bot.updateMessage(status_message, fmt.Sprintf("Выключаем (%d)...", seconds))
-			case turned_off := <-done:
-				if turned_off {
-					bot.updateMessage(status_message, "Выключен")
-				} else {
-					bot.updateMessage(status_message, "Не удалось выключить")
-				}
+				cfg.tickFunc(seconds)
+			case <-done:
+				cfg.doneFunc()
 				return
 			}
 		}
-	}(update)
+	}()
 	return nil
 }
 
 func (bot Bot) handleWakeup(update tgbotapi.Update) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Minute)
-	done, err := plex.WakeupAndWait(ctx)
-	if err != nil {
-		cancel()
-		return err
-	}
-	ticker := time.NewTicker(time.Second)
-	status_message, err := bot.api.Send(Message(update, "Включение..."))
-	started := time.Now()
-	if err != nil {
-		bot.errorMessage(update, err)
-		cancel()
-		return nil
-	}
-	go func(update tgbotapi.Update) {
-		defer ticker.Stop()
-		defer cancel()
-		for {
-			select {
-			case now := <-ticker.C:
-				seconds := now.Unix() - started.Unix()
-				bot.updateMessage(status_message, fmt.Sprintf("Включение (%d)...", seconds))
-			case turned_off := <-done:
-				if turned_off {
-					bot.updateMessage(status_message, "Включен")
-				} else {
-					bot.updateMessage(status_message, "Не удалось включить")
-				}
-				return
-			}
+	// status_message, err := bot.api.Send(Message(update, "Включение..."))
+	// if err != nil {
+	// 	return err
+	// }
+	// ctx, cancel := context.WithTimeout(bot.ctx, 10*time.Minute)
+	// defer cancel()
+	// return bot.doLongProcess(ctx, longProcess{
+	// 	longProcessFunc: plex.WakeupAndWait,
+	// 	tickFunc: func(seconds_elapsed int64) {
+	// 		bot.updateMessage(status_message, fmt.Sprintf("Включение (%d)...", seconds_elapsed))
+	// 	},
+	// 	doneFunc: func() {
+	// 		bot.updateMessage(status_message, "Включен")
+	// 	},
+	// })
+	ctx, cancel := context.WithTimeout(bot.ctx, 10*time.Minute)
+	defer cancel()
+	t := time.NewTicker(1 * time.Second)
+	result := make(chan struct{})
+	defer close(result)
+	go func() {
+		plex.ShutdownAndWait(ctx)
+		close(result)
+	}()
+
+	for {
+		select {
+		case c := <-t.C:
+			bot.updateMessage(status_message, fmt.Sprintf("Включение (%d)...", seconds_elapsed))
+		case <-t:
+			bot.updateMessage(status_message, "Включен")
 		}
-	}(update)
-	return nil
+	}
 }
 
 func (bot Bot) replyText(update tgbotapi.Update, text string) {
@@ -111,12 +122,13 @@ func (bot Bot) handleUpdate(update tgbotapi.Update) (err error) {
 	case "shutdown":
 		bot.handleShutdown(update)
 	default:
-		bot.echo(update)
+		bot.replyText(update, update.Message.Text)
 	}
 	return
 }
 
-func (bot Bot) Start() (err error) {
+func (bot Bot) Start(ctx context.Context) (err error) {
+	bot.ctx = ctx
 	bot.api, err = tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
 		return fmt.Errorf("can't start bot: %v", err)
@@ -152,10 +164,6 @@ func (bot Bot) Start() (err error) {
 
 func (bot Bot) errorMessage(incomming tgbotapi.Update, err error) {
 	bot.replyText(incomming, "Произошла ошибка: "+err.Error())
-}
-
-func (bot Bot) echo(incomming tgbotapi.Update) {
-	bot.replyText(incomming, incomming.Message.Text)
 }
 
 func Message(incomming tgbotapi.Update, text string) tgbotapi.MessageConfig {

@@ -34,16 +34,16 @@ func shutdown() error {
 	return nil
 }
 
-func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
-	response := make(chan bool, 1)
+func ShutdownAndWait(ctx context.Context) (<-chan struct{}, error) {
+	response := make(chan struct{})
 	if !IsAlive() {
-		response <- true
+		close(response)
 		return response, nil
 	}
 	err := shutdown()
 	if err != nil {
 		if isConnectionError(err) {
-			response <- true
+			close(response)
 			return response, nil
 		}
 		return nil, err
@@ -56,27 +56,27 @@ func ShutdownAndWait(ctx context.Context) (<-chan bool, error) {
 			select {
 			case <-ticker.C:
 				if !IsAlive() {
-					response <- true
 					return
 				}
 			case <-ctx.Done():
-				response <- false
 			}
 		}
 	}()
 	return response, nil
 }
 
-func WakeupAndWait(ctx context.Context) (<-chan bool, error) {
-	response := make(chan bool, 1)
+func WakeupAndWait(ctx context.Context) (<-chan struct{}, error) {
+	response := make(chan struct{})
 	if IsAlive() {
-		response <- true
+		close(response)
+		glog.Info("Is already alive")
 		return response, nil
 	}
 	err := wakeup()
 	if err != nil {
+		glog.Warningf("Wake up command error: %v", err)
 		if isConnectionError(err) {
-			response <- true
+			close(response)
 			return response, nil
 		}
 		return nil, err
@@ -89,11 +89,13 @@ func WakeupAndWait(ctx context.Context) (<-chan bool, error) {
 			select {
 			case <-ticker.C:
 				if IsAlive() {
-					response <- true
+					glog.Info("Alive!")
 					return
 				}
+				glog.Info("Still isn't alive")
 			case <-ctx.Done():
-				response <- false
+				glog.Info("Context Done()")
+				return
 			}
 		}
 	}()

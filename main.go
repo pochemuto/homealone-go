@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
@@ -23,7 +24,7 @@ func main() {
 
 	log.Println("Started")
 	var bot homealone.Bot
-	err = bot.Start()
+	err = bot.Start(context.Background())
 	if err != nil {
 		glog.Fatalf("Error: %v", err)
 	}

@@ -23,7 +23,7 @@ func (bot Bot) updateMessage(original tgbotapi.Message, text string) {
 }
 
 func (bot Bot) handleShutdown(update tgbotapi.Update) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Minute)
 	done, err := plex.ShutdownAndWait(ctx)
 	if err != nil {
 		cancel()
@@ -59,7 +59,7 @@ func (bot Bot) handleShutdown(update tgbotapi.Update) error {
 }
 
 func (bot Bot) handleWakeup(update tgbotapi.Update) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Minute)
 	done, err := plex.WakeupAndWait(ctx)
 	if err != nil {
 		cancel()

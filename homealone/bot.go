@@ -101,6 +101,8 @@ func (bot Bot) handleUpdate(update tgbotapi.Update) (err error) {
 		} else {
 			bot.replyText(update, "Не работает")
 		}
+	case "version":
+		bot.replyText(update, "Версия 1")
 	default:
 		bot.replyText(update, update.Message.Text)
 	}

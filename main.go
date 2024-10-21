@@ -5,9 +5,11 @@ import (
 	"flag"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/golang/glog"
 	"github.com/joho/godotenv"
+	"github.com/pochemuto/homealone-go/alice"
 	"github.com/pochemuto/homealone-go/homealone"
 )
 
@@ -22,10 +24,29 @@ func main() {
 		glog.Fatalf("Error loading .env file, %v", err)
 	}
 
-	log.Println("Started")
-	var bot homealone.Bot
-	err = bot.Start(context.Background())
-	if err != nil {
-		glog.Fatalf("Error: %v", err)
-	}
+	log.Println("Starting...")
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	ctx := context.Background()
+	go func() {
+		defer wg.Done()
+		var bot homealone.Bot
+		err = bot.Start(ctx)
+
+		if err != nil {
+			glog.Fatalf("Error in bot: %v", err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		alice := alice.NewAlice()
+		alice.Start(ctx)
+
+		if err != nil {
+			glog.Fatalf("Error in alice: %v", err)
+		}
+	}()
+	log.Println("Finished")
 }

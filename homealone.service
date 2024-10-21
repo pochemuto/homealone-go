@@ -16,7 +16,7 @@ Type=simple
 Restart=always
 RestartSec=1
 EnvironmentFile=/home/pochemuto/homealone/environment
-ExecStart=/home/pochemuto/homealone/homealone
+ExecStart=/home/pochemuto/homealone/homealone --alsologtostderr
 
 [Install]
 WantedBy=default.target

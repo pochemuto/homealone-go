@@ -48,5 +48,6 @@ func main() {
 			glog.Fatalf("Error in alice: %v", err)
 		}
 	}()
+	wg.Wait()
 	log.Println("Finished")
 }

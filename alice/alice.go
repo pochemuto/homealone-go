@@ -26,12 +26,55 @@ func (a Alice) Start(ctx context.Context) error {
 	updates := alice.ListenForWebhook("/alice")
 	go http.ListenAndServe(":"+port, nil)
 
+	offPhrases := []string{
+		"выключаю",
+		"ага, произвожу выключение",
+		"выдергиваю из розетки",
+		"угу, тушу",
+		"Выключаю устройство",
+		"Секундочку, отключаю",
+		"Всё, девайс гаснет",
+		"Вырубаю агрегат",
+		"Отключаю технику",
+		"Готово, устройство останавливается",
+		"Выполнил отключение",
+		"Процесс завершен, отключаю",
+		"Отключение выполнено",
+		"Всё, щас перестанет работать",
+		"снимаю питание",
+	}
+
+	onPhrases := []string{
+		"включаю",
+		"ага, произвожу включение",
+		"втыкаю в розетку",
+		"угу, запускаю",
+		"Включаю устройство",
+		"Секундочку, запускаю",
+		"Всё, девайс запускается",
+		"Врубаю агрегат",
+		"Включаю технику",
+		"Готово, устройство работает",
+		"Выполнил включение",
+		"Процесс завершен, включаю",
+		"Включение выполнено",
+		"Всё, щас заработает",
+		"подаю питание",
+	}​
+	rand.Seed(time.Now().UnixNano())
+
 	updates.Loop(func(k alice.Kit) *alice.Response {
 		req, resp := k.Init()
-		if req.IsNewSession() {
-			return resp.Text("привет")
+		if req.OriginalUtterance() == "выключиться" {
+			randomPhrase := offPhrases[rand.Intn(len(phrases))]
+			return resp.Text(randomPhrase)
 		}
-		return resp.Text(req.OriginalUtterance())
+		if req.OriginalUtterance() == "включаться" {
+			randomPhrase := onPhrases[rand.Intn(len(phrases))]
+			return resp.Text(randomPhrase)
+		}
+
+		return resp.Text("не поняла")
 	})
 
 	return nil

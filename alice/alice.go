@@ -5,10 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/azzzak/alice"
-	"golang.org/x/exp/rand"
 )
 
 type Alice struct {
@@ -30,19 +28,19 @@ func (a Alice) Start(ctx context.Context) error {
 
 	offPhrases := []string{
 		"выключаю",
-		"ага, произвожу выключение",
+		"ага-, произвожу выключение",
 		"выдергиваю из розетки",
-		"угу, тушу",
+		"угу-, тушу",
 		"Выключаю устройство",
-		"Секундочку, отключаю",
-		"Всё, девайс гаснет",
+		"Секундочку-, отключаю",
+		"Всё-, девайс гаснет",
 		"Вырубаю агрегат",
 		"Отключаю технику",
-		"Готово, устройство останавливается",
+		"Готово-, устройство останавливается",
 		"Выполнил отключение",
 		"Процесс завершен, отключаю",
 		"Отключение выполнено",
-		"Всё, щас перестанет работать",
+		"Всё-, щас перестанет работать",
 		"снимаю питание",
 	}
 
@@ -50,30 +48,27 @@ func (a Alice) Start(ctx context.Context) error {
 		"включаю",
 		"ага, произвожу включение",
 		"втыкаю в розетку",
-		"угу, запускаю",
+		"угу-, запускаю",
 		"Включаю устройство",
-		"Секундочку, запускаю",
+		"Секундочку-, запускаю",
 		"Всё, девайс запускается",
 		"Врубаю агрегат",
 		"Включаю технику",
-		"Готово, устройство работает",
+		"Готово-, устройство работает",
 		"Выполнил включение",
-		"Процесс завершен, включаю",
+		"Процесс завершен-, включаю",
 		"Включение выполнено",
-		"Всё, щас заработает",
+		"Всё-, щас заработает",
 		"подаю питание",
 	}
-	rand.Seed(uint64(time.Now().UnixNano()))
 
 	updates.Loop(func(k alice.Kit) *alice.Response {
 		req, resp := k.Init()
 		if req.OriginalUtterance() == "выключиться" {
-			randomPhrase := offPhrases[rand.Intn(len(offPhrases))]
-			return resp.Text(randomPhrase)
+			return resp.RandomText(offPhrases...).EndSession()
 		}
 		if req.OriginalUtterance() == "включаться" {
-			randomPhrase := onPhrases[rand.Intn(len(onPhrases))]
-			return resp.Text(randomPhrase)
+			return resp.RandomText(onPhrases...).EndSession()
 		}
 
 		return resp.Text("не поняла")

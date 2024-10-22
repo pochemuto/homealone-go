@@ -2,10 +2,11 @@ package alice
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/azzzak/alice"
 )
 
 type Alice struct {
@@ -21,42 +22,17 @@ func (a Alice) Start(ctx context.Context) error {
 	a.ctx = ctx
 
 	port := os.Getenv("ALICE_PORT")
-	// Создаем новый HTTP сервер
-	a.server = &http.Server{
-		Addr:    ":" + port,
-		Handler: a.routes(),
-	}
+	log.Printf("Listening port :%s", port)
+	updates := alice.ListenForWebhook("/alice")
+	go http.ListenAndServe(":"+port, nil)
 
-	go func() {
-		log.Printf("HTTP server started on :%s\n", port)
-		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Could not start server: %v", err)
+	updates.Loop(func(k alice.Kit) *alice.Response {
+		req, resp := k.Init()
+		if req.IsNewSession() {
+			return resp.Text("привет")
 		}
-	}()
-
-	// Ожидаем завершения через контекст
-	<-ctx.Done()
-
-	// Завершаем работу сервера при получении сигнала завершения
-	log.Println("Shutting down server...")
-
-	if err := a.server.Shutdown(context.Background()); err != nil {
-		log.Fatalf("Server Shutdown Failed:%+v", err)
-	}
-
-	log.Println("Server exited properly")
+		return resp.Text(req.OriginalUtterance())
+	})
 
 	return nil
-}
-
-func (a *Alice) routes() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", a.handleHome())
-	return mux
-}
-
-func (a *Alice) handleHome() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello from Alice!")
-	}
 }

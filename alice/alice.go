@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/azzzak/alice"
+	"github.com/pochemuto/homealone-go/plex"
 )
 
 type Alice struct {
@@ -65,9 +66,23 @@ func (a Alice) Start(ctx context.Context) error {
 	updates.Loop(func(k alice.Kit) *alice.Response {
 		req, resp := k.Init()
 		if req.OriginalUtterance() == "выключиться" {
+			ctx, cancel := context.WithCancel(a.ctx)
+			ch, err := plex.ShutdownAndWait(ctx)
+			cancel()
+			if err != nil {
+				return resp.Text(err.Error())
+			}
+			<-ch
 			return resp.RandomText(offPhrases...).EndSession()
 		}
 		if req.OriginalUtterance() == "включаться" {
+			ctx, cancel := context.WithCancel(a.ctx)
+			ch, err := plex.WakeupAndWait(ctx)
+			cancel()
+			if err != nil {
+				return resp.Text(err.Error())
+			}
+			<-ch
 			return resp.RandomText(onPhrases...).EndSession()
 		}
 

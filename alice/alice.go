@@ -63,16 +63,16 @@ func (a Alice) Start(ctx context.Context) error {
 		"Всё, щас заработает",
 		"подаю питание",
 	}
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(uint64(time.Now().UnixNano()))
 
 	updates.Loop(func(k alice.Kit) *alice.Response {
 		req, resp := k.Init()
 		if req.OriginalUtterance() == "выключиться" {
-			randomPhrase := offPhrases[rand.Intn(len(phrases))]
+			randomPhrase := offPhrases[rand.Intn(len(offPhrases))]
 			return resp.Text(randomPhrase)
 		}
 		if req.OriginalUtterance() == "включаться" {
-			randomPhrase := onPhrases[rand.Intn(len(phrases))]
+			randomPhrase := onPhrases[rand.Intn(len(onPhrases))]
 			return resp.Text(randomPhrase)
 		}
 

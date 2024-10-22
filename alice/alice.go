@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/azzzak/alice"
+	"github.com/golang/glog"
 	"github.com/pochemuto/homealone-go/plex"
 )
 
@@ -65,7 +66,9 @@ func (a Alice) Start(ctx context.Context) error {
 
 	updates.Loop(func(k alice.Kit) *alice.Response {
 		req, resp := k.Init()
+		glog.Infof("Received message: %s", req.OriginalUtterance())
 		if req.OriginalUtterance() == "выключиться" {
+			glog.Info("Shutting down plex")
 			ctx, cancel := context.WithCancel(a.ctx)
 			ch, err := plex.ShutdownAndWait(ctx)
 			cancel()
@@ -73,9 +76,11 @@ func (a Alice) Start(ctx context.Context) error {
 				return resp.Text(err.Error())
 			}
 			<-ch
+			glog.Info("Request sent")
 			return resp.RandomText(offPhrases...).EndSession()
 		}
-		if req.OriginalUtterance() == "включаться" {
+		if req.OriginalUtterance() == "включиться" {
+			glog.Info("Turning up plex")
 			ctx, cancel := context.WithCancel(a.ctx)
 			ch, err := plex.WakeupAndWait(ctx)
 			cancel()
@@ -83,10 +88,11 @@ func (a Alice) Start(ctx context.Context) error {
 				return resp.Text(err.Error())
 			}
 			<-ch
+			glog.Info("Request sent")
 			return resp.RandomText(onPhrases...).EndSession()
 		}
 
-		return resp.Text("не поняла")
+		return resp.Text("не поняла. Я услышала: ").Pause(1).Text(req.OriginalUtterance())
 	})
 
 	return nil

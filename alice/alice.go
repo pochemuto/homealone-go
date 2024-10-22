@@ -5,8 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/azzzak/alice"
+	"golang.org/x/exp/rand"
 )
 
 type Alice struct {
@@ -60,7 +62,7 @@ func (a Alice) Start(ctx context.Context) error {
 		"Включение выполнено",
 		"Всё, щас заработает",
 		"подаю питание",
-	}​
+	}
 	rand.Seed(time.Now().UnixNano())
 
 	updates.Loop(func(k alice.Kit) *alice.Response {

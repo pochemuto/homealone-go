@@ -104,11 +104,36 @@ func (bot Bot) handleUpdate(update tgbotapi.Update) (err error) {
 			bot.replyText(update, "Не работает")
 		}
 	case "version":
-		bot.replyText(update, "Версия 1 (build "+buildDate+")")
+		version, err := getVersion()
+		if err != nil {
+			bot.replyText(update, err.Error())
+		} else {
+			bot.replyText(update, version)
+		}
 	default:
 		bot.replyText(update, update.Message.Text)
 	}
 	return
+}
+
+func getVersion() (string, error) {
+	fmt.Printf("Build date: %s\n", buildDate)
+	if buildDate == "" {
+		fmt.Println("Build date is not set.")
+		return "", fmt.Errorf("build date is not set")
+	}
+
+	buildTime, err := time.Parse("2006-01-02T15:04:05", buildDate)
+	if err != nil {
+		return "", err
+	}
+
+	duration := time.Since(buildTime)
+	if duration < time.Hour*24 {
+		return fmt.Sprintf("%s, %d minutes ago", buildDate, int(duration.Minutes())), nil
+	} else {
+		return fmt.Sprintf("%s, %d days ago", buildDate, int(duration.Hours()/24)), nil
+	}
 }
 
 func (bot Bot) Start(ctx context.Context) (err error) {

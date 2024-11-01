@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/azzzak/alice"
 	"github.com/golang/glog"
@@ -12,8 +13,7 @@ import (
 )
 
 type Alice struct {
-	ctx    context.Context
-	server *http.Server
+	ctx context.Context
 }
 
 func NewAlice() Alice {
@@ -69,26 +69,32 @@ func (a Alice) Start(ctx context.Context) error {
 		glog.Infof("Received message: %s", req.OriginalUtterance())
 		if req.OriginalUtterance() == "выключиться" {
 			glog.Info("Shutting down plex")
-			ctx, cancel := context.WithCancel(a.ctx)
-			ch, err := plex.ShutdownAndWait(ctx)
-			cancel()
-			if err != nil {
-				return resp.Text(err.Error())
-			}
-			<-ch
-			glog.Info("Request sent")
+			go func() {
+				ctx, cancel := context.WithTimeout(a.ctx, 2*time.Minute)
+				defer cancel()
+				ch, err := plex.ShutdownAndWait(ctx)
+				if err != nil {
+					glog.Errorf("Error shutting down: %v", err)
+					return
+				}
+				<-ch
+				glog.Info("Shutdown request completed")
+			}()
 			return resp.RandomText(offPhrases...).EndSession()
 		}
 		if req.OriginalUtterance() == "включиться" {
 			glog.Info("Turning up plex")
-			ctx, cancel := context.WithCancel(a.ctx)
-			ch, err := plex.WakeupAndWait(ctx)
-			cancel()
-			if err != nil {
-				return resp.Text(err.Error())
-			}
-			<-ch
-			glog.Info("Request sent")
+			go func() {
+				ctx, cancel := context.WithTimeout(a.ctx, 2*time.Minute)
+				defer cancel()
+				ch, err := plex.WakeupAndWait(ctx)
+				if err != nil {
+					glog.Errorf("Error waking up: %v", err)
+					return
+				}
+				<-ch
+				glog.Info("Wakeup request completed")
+			}()
 			return resp.RandomText(onPhrases...).EndSession()
 		}
 

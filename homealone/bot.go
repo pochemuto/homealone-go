@@ -13,6 +13,8 @@ import (
 	"github.com/pochemuto/homealone-go/plex"
 )
 
+var buildDate string
+
 type Bot struct {
 	ctx context.Context
 	api *tgbotapi.BotAPI
@@ -102,7 +104,7 @@ func (bot Bot) handleUpdate(update tgbotapi.Update) (err error) {
 			bot.replyText(update, "Не работает")
 		}
 	case "version":
-		bot.replyText(update, "Версия 1")
+		bot.replyText(update, "Версия 1 (build "+buildDate+")")
 	default:
 		bot.replyText(update, update.Message.Text)
 	}

@@ -28,7 +28,7 @@ jobs:
       env:
         GOOS: linux
         GOARCH: arm
-      run: go build -v -o dist/homealone
+      run: go build -ldflags "-X 'homealone.buildDate=$(date -u +%Y-%m-%d)'" -v -o dist/homealone
 
     - name: Test
       run: go test -v ./...

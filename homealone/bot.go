@@ -129,7 +129,9 @@ func getVersion() (string, error) {
 	}
 
 	duration := time.Since(buildTime)
-	if duration < time.Hour*24 {
+	if duration < time.Minute {
+		return fmt.Sprintf("%s, %d seconds ago", buildDate, int(duration.Seconds())), nil
+	} else if duration < time.Hour*24 {
 		return fmt.Sprintf("%s, %d minutes ago", buildDate, int(duration.Minutes())), nil
 	} else {
 		return fmt.Sprintf("%s, %d days ago", buildDate, int(duration.Hours()/24)), nil

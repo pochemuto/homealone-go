@@ -9,8 +9,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/joho/godotenv"
-	"github.com/pochemuto/homealone-go/alice"
-	"github.com/pochemuto/homealone-go/homealone"
 )
 
 func init() {
@@ -28,10 +26,15 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
+	app, err := InitializeApplication()
+	if err != nil {
+		glog.Fatalf("Error initializing application: %v", err)
+	}
+
 	ctx := context.Background()
 	go func() {
 		defer wg.Done()
-		var bot homealone.Bot
+		bot := app.Bot
 		err = bot.Start(ctx)
 
 		if err != nil {
@@ -41,7 +44,7 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		alice := alice.NewAlice()
+		alice := app.Alice
 		alice.Start(ctx)
 
 		if err != nil {

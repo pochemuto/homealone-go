@@ -20,6 +20,10 @@ type Bot struct {
 	api *tgbotapi.BotAPI
 }
 
+func NewBot() Bot {
+	return Bot{}
+}
+
 func (bot Bot) updateMessage(original tgbotapi.Message, text string) {
 	bot.api.Send(tgbotapi.NewEditMessageText(original.Chat.ID, original.MessageID,
 		text))

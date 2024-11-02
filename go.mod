@@ -11,6 +11,15 @@ require (
 )
 
 require (
+	github.com/google/wire v0.6.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.7.1 // indirect
+	golang.org/x/crypto v0.27.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
+)
+
+require (
 	github.com/azzzak/alice v0.3.0
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/mdlayher/ethernet v0.0.0-20220221185849-529eae5b6118 // indirect
@@ -18,5 +27,5 @@ require (
 	github.com/mdlayher/socket v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 )

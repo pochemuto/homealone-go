@@ -5,10 +5,12 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/google/wire"
 	"github.com/pochemuto/homealone-go/alice"
 	"github.com/pochemuto/homealone-go/homealone"
+	"github.com/pochemuto/homealone-go/internal/db"
 )
 
 type Application struct {
@@ -27,7 +29,14 @@ func NewApplication(
 }
 
 func InitializeApplication() (Application, error) {
-	app, err := initializeApp()
+
+	connectionString := db.ConnectionString(os.Getenv("PGCONNECTION"))
+	if connectionString == "" {
+		return Application{}, fmt.Errorf("provide a connection string PGCONNECTION")
+	}
+
+	app, err := initializeApp(connectionString)
+
 	if err != nil {
 		return Application{}, fmt.Errorf("app initialization error: %w", err)
 	}
@@ -35,11 +44,15 @@ func InitializeApplication() (Application, error) {
 	return app, nil
 }
 
-func initializeApp() (Application, error) {
+func initializeApp(
+	connection db.ConnectionString,
+) (Application, error) {
 	wire.Build(
 		NewApplication,
 		alice.NewAlice,
 		homealone.NewBot,
+		db.NewPgxPool,
+		db.NewDB,
 	)
 	return Application{}, nil
 }

@@ -10,6 +10,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/golang/glog"
+	"github.com/pochemuto/homealone-go/internal/db"
 	"github.com/pochemuto/homealone-go/plex"
 )
 
@@ -17,10 +18,11 @@ var buildDate string
 
 type Bot struct {
 	ctx context.Context
+	db  db.DB
 	api *tgbotapi.BotAPI
 }
 
-func NewBot() Bot {
+func NewBot(db db.DB) Bot {
 	return Bot{}
 }
 

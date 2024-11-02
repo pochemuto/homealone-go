@@ -10,12 +10,22 @@ import (
 	"fmt"
 	"github.com/pochemuto/homealone-go/alice"
 	"github.com/pochemuto/homealone-go/homealone"
+	"github.com/pochemuto/homealone-go/internal/db"
+	"os"
 )
 
 // Injectors from wire.go:
 
-func initializeApp() (Application, error) {
-	bot := homealone.NewBot()
+func initializeApp(connection db.ConnectionString) (Application, error) {
+	pool, err := db.NewPgxPool(connection)
+	if err != nil {
+		return Application{}, err
+	}
+	dbDB, err := db.NewDB(pool)
+	if err != nil {
+		return Application{}, err
+	}
+	bot := homealone.NewBot(dbDB)
 	aliceAlice := alice.NewAlice()
 	application := NewApplication(bot, aliceAlice)
 	return application, nil
@@ -39,7 +49,14 @@ func NewApplication(
 }
 
 func InitializeApplication() (Application, error) {
-	app, err := initializeApp()
+
+	connectionString := db.ConnectionString(os.Getenv("PGCONNECTION"))
+	if connectionString == "" {
+		return Application{}, fmt.Errorf("provide a connection string PGCONNECTION")
+	}
+
+	app, err := initializeApp(connectionString)
+
 	if err != nil {
 		return Application{}, fmt.Errorf("app initialization error: %w", err)
 	}

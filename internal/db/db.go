@@ -30,7 +30,7 @@ func NewPgxPool(connection ConnectionString) (*pgxpool.Pool, error) {
 	if parseErr != nil {
 		glog.Warningf("Failed to parse connection string: %v", parseErr)
 	} else {
-		glog.Infof("Connected to %s", u.Host)
+		glog.Infof("Connected to %s, db %s", u.Host, u.Path[1:])
 	}
 	return conn, nil
 }

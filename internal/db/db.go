@@ -16,17 +16,19 @@ type DB struct {
 
 type ConnectionString string
 
-func NewPgxPool(connection ConnectionString) (*pgxpool.Pool, error) {
-	conn, err := pgxpool.New(context.Background(), string(connection))
+func NewPgxPool(connectionString ConnectionString) (*pgxpool.Pool, error) {
+	// Creates a new pgx pool.
+	conn, err := pgxpool.New(context.Background(), string(connectionString))
 	if err != nil {
 		return nil, err
 	}
+	// Check connection.
 	err = conn.Ping(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	// Extract the domain/host from the connection string.
-	u, parseErr := url.Parse(string(connection))
+	u, parseErr := url.Parse(string(connectionString))
 	if parseErr != nil {
 		glog.Warningf("Failed to parse connection string: %v", parseErr)
 	} else {
@@ -36,6 +38,7 @@ func NewPgxPool(connection ConnectionString) (*pgxpool.Pool, error) {
 }
 
 func NewDB(conn *pgxpool.Pool) (DB, error) {
+	// Creates a new DB instance.
 	return DB{
 		conn:    conn,
 		queries: sqlc.New(conn),

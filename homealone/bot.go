@@ -32,8 +32,8 @@ func (bot Bot) updateMessage(original tgbotapi.Message, text string) {
 }
 
 type longProcess struct {
-	longProcess func(context.Context) (<-chan struct{}, error)
-	tick        func(seconds_elapsed int64)
+	longProcess func(ctx context.Context) (<-chan struct{}, error)
+	tick        func(secondsElapsed int64)
 	done        func()
 }
 
@@ -58,7 +58,7 @@ func doLongProcess(ctx context.Context, cfg longProcess) error {
 }
 
 func (bot Bot) handleShutdown(update tgbotapi.Update) error {
-	status_message, err := bot.api.Send(Message(update, "Выключение..."))
+	statusMessage, err := bot.api.Send(Message(update, "Выключение..."))
 	if err != nil {
 		return err
 	}
@@ -67,16 +67,16 @@ func (bot Bot) handleShutdown(update tgbotapi.Update) error {
 	return doLongProcess(ctx, longProcess{
 		longProcess: plex.ShutdownAndWait,
 		tick: func(seconds_elapsed int64) {
-			bot.updateMessage(status_message, fmt.Sprintf("Выключение (%d)...", seconds_elapsed))
+			bot.updateMessage(statusMessage, fmt.Sprintf("Выключение (%d)...", secondsElapsed))
 		},
 		done: func() {
-			bot.updateMessage(status_message, "Выключен")
+			bot.updateMessage(statusMessage, "Выключен")
 		},
 	})
 }
 
 func (bot Bot) handleWakeup(update tgbotapi.Update) error {
-	status_message, err := bot.api.Send(Message(update, "Включение..."))
+	statusMessage, err := bot.api.Send(Message(update, "Включение..."))
 	if err != nil {
 		return err
 	}
@@ -84,11 +84,11 @@ func (bot Bot) handleWakeup(update tgbotapi.Update) error {
 	defer cancel()
 	return doLongProcess(ctx, longProcess{
 		longProcess: plex.WakeupAndWait,
-		tick: func(seconds_elapsed int64) {
-			bot.updateMessage(status_message, fmt.Sprintf("Включение (%d)...", seconds_elapsed))
+		tick: func(secondsElapsed int64) {
+			bot.updateMessage(statusMessage, fmt.Sprintf("Включение (%d)...", secondsElapsed))
 		},
 		done: func() {
-			bot.updateMessage(status_message, "Включен")
+			bot.updateMessage(statusMessage, "Включен")
 		},
 	})
 }
@@ -128,10 +128,11 @@ func getVersion() (string, error) {
 		fmt.Println("Build date is not set.")
 		return "", fmt.Errorf("build date is not set")
 	}
+	var err error
 
 	buildTime, err := time.Parse("2006-01-02T15:04:05", buildDate)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error parsing build date: %w", err)
 	}
 
 	duration := time.Since(buildTime)
@@ -183,13 +184,13 @@ func (bot Bot) Start(ctx context.Context) (err error) {
 	return nil
 }
 
-func (bot Bot) errorMessage(incomming tgbotapi.Update, err error) {
-	bot.replyText(incomming, "Произошла ошибка: "+err.Error())
+func (bot Bot) errorMessage(incoming tgbotapi.Update, err error) {
+	bot.replyText(incoming, "Произошла ошибка: "+err.Error())
 }
 
-func Message(incomming tgbotapi.Update, text string) tgbotapi.MessageConfig {
-	msg := tgbotapi.NewMessage(incomming.Message.Chat.ID, text)
-	msg.ReplyToMessageID = incomming.Message.MessageID
+func Message(incoming tgbotapi.Update, text string) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(incoming.Message.Chat.ID, text)
+	msg.ReplyToMessageID = incoming.Message.MessageID
 	return msg
 }
 

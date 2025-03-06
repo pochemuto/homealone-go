@@ -18,28 +18,35 @@ import (
 )
 
 func shutdown() error {
+	// Sends a shutdown command to the plex server.
 	trigger := os.Getenv("PLEX_SHUTDOWN_TRIGGER")
 	body := []byte(os.Getenv("PLEX_SHUTDOWN_SECRET"))
 	resp, err := http.Post(trigger, "Content-Type: text/plain", bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
+	// Check the response status code.
 	if resp.StatusCode != 200 {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
+		if resp.Body != nil {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return err
+			}
+			return fmt.Errorf("failed response (%d): %s", resp.StatusCode, body)
 		}
-		return fmt.Errorf("failed response (%d): %s", resp.StatusCode, body)
+		return nil
 	}
 	return nil
 }
 
 func ShutdownAndWait(ctx context.Context) (<-chan struct{}, error) {
+	// ShutdownAndWait sends a shutdown command to the plex server and waits until it is shut down.
 	response := make(chan struct{})
 	if !IsAlive() {
 		close(response)
 		return response, nil
 	}
+	// Send shutdown command
 	err := shutdown()
 	if err != nil {
 		if isConnectionError(err) {
@@ -48,6 +55,7 @@ func ShutdownAndWait(ctx context.Context) (<-chan struct{}, error) {
 		}
 		return nil, err
 	}
+	// Waiting for shutdown.
 	ticker := time.NewTicker(5 * time.Second)
 	go func() {
 		defer ticker.Stop()
@@ -66,12 +74,14 @@ func ShutdownAndWait(ctx context.Context) (<-chan struct{}, error) {
 }
 
 func WakeupAndWait(ctx context.Context) (<-chan struct{}, error) {
+	// WakeupAndWait sends a wakeup command to the plex server and waits until it is up.
 	response := make(chan struct{})
 	if IsAlive() {
 		close(response)
 		glog.Info("Is already alive")
 		return response, nil
 	}
+	// Wake up command.
 	err := wakeup()
 	if err != nil {
 		glog.Warningf("Wake up command error: %v", err)
@@ -81,6 +91,7 @@ func WakeupAndWait(ctx context.Context) (<-chan struct{}, error) {
 		}
 		return nil, err
 	}
+	// Waiting for wakeup
 	ticker := time.NewTicker(5 * time.Second)
 	go func() {
 		defer ticker.Stop()
@@ -103,6 +114,7 @@ func WakeupAndWait(ctx context.Context) (<-chan struct{}, error) {
 }
 
 func wakeup() error {
+	// Sends a magic packet to wake up the plex server.
 	client, err := wol.NewClient()
 	if err != nil {
 		return err
@@ -124,6 +136,7 @@ func wakeup() error {
 }
 
 func isConnectionError(err error) bool {
+	// Checks if an error is a connection error.
 	if errors.Is(err, syscall.ECONNREFUSED) ||
 		errors.Is(err, syscall.EHOSTDOWN) ||
 		errors.Is(err, syscall.EHOSTUNREACH) {
@@ -133,6 +146,7 @@ func isConnectionError(err error) bool {
 }
 
 func IsAlive() bool {
+	// Checks if the plex server is alive.
 	url := os.Getenv("PLEX_URL")
 	glog.Infof("Requesting %s", url)
 	client := http.Client{
@@ -143,7 +157,7 @@ func IsAlive() bool {
 		log.Printf("Error: %v", err.Error())
 		return false
 	}
-	plex_protocol := resp.Header.Get("X-Plex-Protocol")
-	glog.Infof("Plex protocol: %s", plex_protocol)
-	return plex_protocol != ""
+	plexProtocol := resp.Header.Get("X-Plex-Protocol")
+	glog.Infof("Plex protocol: %s", plexProtocol)
+	return plexProtocol != ""
 }

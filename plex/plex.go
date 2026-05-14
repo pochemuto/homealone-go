@@ -59,6 +59,8 @@ func ShutdownAndWait(ctx context.Context) (<-chan struct{}, error) {
 					return
 				}
 			case <-ctx.Done():
+				glog.Info("Context Done()")
+				return
 			}
 		}
 	}()

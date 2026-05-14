@@ -35,9 +35,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		bot := app.Bot
-		err = bot.Start(ctx)
-
-		if err != nil {
+		if err := bot.Start(ctx); err != nil {
 			glog.Fatalf("Error in bot: %v", err)
 		}
 	}()
@@ -45,9 +43,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		alice := app.Alice
-		alice.Start(ctx)
-
-		if err != nil {
+		if err := alice.Start(ctx); err != nil {
 			glog.Fatalf("Error in alice: %v", err)
 		}
 	}()

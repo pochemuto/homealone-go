@@ -23,7 +23,7 @@ type Bot struct {
 }
 
 func NewBot(db db.DB) Bot {
-	return Bot{}
+	return Bot{db: db}
 }
 
 func (bot Bot) updateMessage(original tgbotapi.Message, text string) {
@@ -66,7 +66,7 @@ func (bot Bot) handleShutdown(update tgbotapi.Update) error {
 	defer cancel()
 	return doLongProcess(ctx, longProcess{
 		longProcess: plex.ShutdownAndWait,
-		tick: func(seconds_elapsed int64) {
+		tick: func(secondsElapsed int64) {
 			bot.updateMessage(statusMessage, fmt.Sprintf("Выключение (%d)...", secondsElapsed))
 		},
 		done: func() {
